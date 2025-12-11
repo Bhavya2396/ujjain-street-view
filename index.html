@@ -1410,7 +1410,33 @@
         🎯 Drag the marker to its correct position
         <button onclick="saveCalibration()">Save Position</button>
         <button onclick="cancelCalibration()">Cancel</button>
-            </div>
+    </div>
+    
+    <!-- Debug Overlay (Toggle with 'D' key) -->
+    <div id="debugOverlay" style="
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.85);
+        color: #0ff;
+        padding: 15px;
+        border-radius: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        line-height: 1.6;
+        z-index: 1500;
+        display: none;
+        border: 1px solid #0ff;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        max-width: 350px;
+    ">
+        <div style="font-weight: bold; color: #fff; margin-bottom: 10px; border-bottom: 1px solid #0ff; padding-bottom: 5px;">
+            🔍 MARKER POSITIONING DEBUG
+        </div>
+        <div id="debugContent" style="color: #0ff;">
+            Press 'D' to toggle this overlay
+        </div>
+    </div>
             
     
     <!-- Hidden video element -->
@@ -3037,6 +3063,7 @@
             }
             
             let visibleCount = 0;
+            let debugInfo = []; // For debug overlay
             
             markerElements.forEach(({ element, data }) => {
                 // Calculate real-time distance from current position
@@ -3072,44 +3099,86 @@
                     label.textContent = `${approachIcon}${data.name} • ${distText}`;
                 }
                 
-                // Calculate real-time bearing from current position to marker
-                const currentBearing = calculateBearing(
+                // ═══════════════════════════════════════════════════════════
+                // ACCURATE 360° MARKER POSITIONING
+                // ═══════════════════════════════════════════════════════════
+                
+                // Step 1: Calculate real-world bearing from current position to marker
+                // (This gives us compass bearing: 0° = North, 90° = East, 180° = South, 270° = West)
+                const markerBearing = calculateBearing(
                     currentPos.lat, currentPos.lng,
                     data.lat, data.lng
                 );
                 
-                // Calculate relative bearing (marker bearing relative to vehicle heading)
-                let relativeBearing = currentBearing - vehicleHeading;
+                // Step 2: Calculate marker's position relative to vehicle direction
+                // (If vehicle heads North and marker is East, relativeBearing = 90°)
+                let relativeBearing = markerBearing - vehicleHeading;
                 
-                // Normalize to -180 to 180 range
+                // Normalize to -180 to 180 range (right is positive, left is negative)
                 while (relativeBearing > 180) relativeBearing -= 360;
                 while (relativeBearing < -180) relativeBearing += 360;
                 
+                // Step 3: Account for camera rotation (where user is looking)
+                // lon: 0° = forward, 90° = looking right, -90° = looking left, 180° = looking back
+                const cameraYaw = lon;
+                
+                // Final angle: marker position in screen space
+                // This is the horizontal angle from screen center to marker
+                let screenAngle = relativeBearing - cameraYaw;
+                
+                // Normalize again
+                while (screenAngle > 180) screenAngle -= 360;
+                while (screenAngle < -180) screenAngle += 360;
+                
                 // Apply calibration offset if exists
                 if (data.calibratedOffset !== undefined) {
-                    relativeBearing += data.calibratedOffset;
+                    screenAngle += data.calibratedOffset;
                 }
                 
-                // Convert to radians
-                const bearingRad = relativeBearing * (Math.PI / 180);
+                // Collect debug info for all markers
+                debugInfo.push({
+                    name: data.name,
+                    distance: distanceMeters.toFixed(0),
+                    markerBearing: markerBearing.toFixed(1),
+                    relativeBearing: relativeBearing.toFixed(1),
+                    side: relativeBearing > 0 ? 'RIGHT' : 'LEFT',
+                    screenAngle: screenAngle.toFixed(1),
+                    isInView: isInView,
+                    x: Math.round(x),
+                    y: Math.round(y)
+                });
                 
-                // Camera rotation offset
-                const cameraYaw = lon * (Math.PI / 180);
-                const cameraPitch = lat * (Math.PI / 180);
+                // Debug log for first marker every 100 updates
+                if (shouldDebugLog && data.id === markers3D[0]?.id) {
+                    console.log(`   Marker: ${data.name}`);
+                    console.log(`     Compass Bearing: ${markerBearing.toFixed(1)}°`);
+                    console.log(`     Vehicle Heading: ${vehicleHeading.toFixed(1)}°`);
+                    console.log(`     Relative Bearing: ${relativeBearing.toFixed(1)}° (${relativeBearing > 0 ? 'RIGHT' : 'LEFT'})`);
+                    console.log(`     Camera Yaw: ${cameraYaw.toFixed(1)}°`);
+                    console.log(`     Screen Angle: ${screenAngle.toFixed(1)}°`);
+                }
                 
-                // Calculate 3D position on sphere (adjusted for vehicle heading)
-                const adjustedBearing = bearingRad - cameraYaw;
+                // ═══════════════════════════════════════════════════════════
+                // PROJECT TO SCREEN COORDINATES
+                // ═══════════════════════════════════════════════════════════
                 
-                // Project to 2D screen space with better depth perception
-                const distance = 0.6 + (distanceMeters / 200); // Closer = more forward
-                const verticalOffset = Math.sin(cameraPitch * 0.5) * 100;
+                // For 360° video, horizontal position is directly based on angle
+                // 75° FOV means ±37.5° is visible on screen
+                const FOV = 75; // Three.js default camera FOV
+                const halfFOV = FOV / 2;
                 
-                const x = centerX + Math.cos(adjustedBearing) * containerRect.width * distance;
-                const y = centerY + Math.sin(adjustedBearing) * containerRect.height * 0.4 - verticalOffset;
+                // Check if marker is within field of view
+                const isInView = Math.abs(screenAngle) < 120; // ±120° for wider visibility
                 
-                // WIDER FIELD OF VIEW: Show markers in wider angle range
-                // Allow markers to be visible from -120° to +120° (240° total)
-                const isInView = Math.abs(adjustedBearing) < (Math.PI * 0.67); // ~120 degrees on each side
+                // Calculate horizontal position
+                // screenAngle of 0° = center, +FOV/2 = right edge, -FOV/2 = left edge
+                const horizontalFraction = screenAngle / halfFOV;
+                const x = centerX + (horizontalFraction * containerRect.width * 0.35); // 0.35 = scale factor
+                
+                // Vertical position (simplified, based on pitch)
+                const cameraPitch = lat; // vertical camera angle
+                const verticalOffset = Math.sin(cameraPitch * Math.PI / 180) * 50;
+                const y = centerY - verticalOffset;
                 
                 // Calculate opacity based on angle (fade at edges)
                 let opacity = 1.0;
@@ -3160,6 +3229,47 @@
             const markersVisibleEl = document.getElementById('stat-markers-visible');
             if (markersTotalEl) markersTotalEl.textContent = markerElements.length;
             if (markersVisibleEl) markersVisibleEl.textContent = visibleCount;
+            
+            // Update debug overlay
+            const debugOverlay = document.getElementById('debugOverlay');
+            const debugContent = document.getElementById('debugContent');
+            if (debugOverlay && debugOverlay.style.display === 'block' && debugContent) {
+                let html = `
+                    <div style="color: #fff; margin-bottom: 8px;">
+                        <strong>Camera:</strong> Yaw ${lon.toFixed(1)}°, Pitch ${lat.toFixed(1)}°<br>
+                        <strong>Vehicle:</strong> Heading ${vehicleHeading.toFixed(1)}°<br>
+                        <strong>GPS:</strong> ${currentPos.lat.toFixed(6)}, ${currentPos.lng.toFixed(6)}
+                    </div>
+                `;
+                
+                if (debugInfo.length > 0) {
+                    html += `<div style="border-top: 1px solid #0ff; padding-top: 8px; margin-top: 8px;">`;
+                    html += `<strong style="color: #fff;">Markers (${visibleCount}/${markerElements.length}):</strong><br><br>`;
+                    debugInfo.forEach(info => {
+                        const color = info.isInView ? '#0f0' : '#f80';
+                        html += `
+                            <div style="margin-bottom: 10px; padding: 5px; background: rgba(0,0,0,0.3); border-left: 2px solid ${color}; padding-left: 8px;">
+                                <div style="color: ${color}; font-weight: bold;">${info.name}</div>
+                                <div style="font-size: 10px; line-height: 1.4;">
+                                    Distance: ${info.distance}m<br>
+                                    Compass: ${info.markerBearing}°<br>
+                                    Relative: ${info.relativeBearing}° (${info.side})<br>
+                                    Screen: ${info.screenAngle}°<br>
+                                    Position: (${info.x}, ${info.y})<br>
+                                    ${info.isInView ? '<span style="color: #0f0">✅ IN VIEW</span>' : '<span style="color: #f80">⚠️ OUT OF VIEW</span>'}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += `</div>`;
+                } else {
+                    html += `<div style="color: #888; margin-top: 8px;">No markers in range (200m)</div>`;
+                }
+                
+                html += `<div style="border-top: 1px solid #0ff; padding-top: 8px; margin-top: 12px; color: #888; font-size: 10px;">Press 'D' to hide</div>`;
+                
+                debugContent.innerHTML = html;
+            }
         }
         
         // Update markers on camera movement
@@ -3337,12 +3447,25 @@
             // Load saved landmarks
             loadCustomMarkers();
             
-            // Keyboard shortcut: Press 'M' to add marker
+            // Keyboard shortcuts
             document.addEventListener('keydown', (e) => {
+                // 'M' key: Add marker
                 if (e.key === 'm' || e.key === 'M') {
                     const modal = document.getElementById('landmarkModal');
                     if (!modal.classList.contains('show')) {
                         openLandmarkModal();
+                    }
+                }
+                
+                // 'D' key: Toggle debug overlay
+                if (e.key === 'd' || e.key === 'D') {
+                    const debugOverlay = document.getElementById('debugOverlay');
+                    if (debugOverlay.style.display === 'none' || !debugOverlay.style.display) {
+                        debugOverlay.style.display = 'block';
+                        showToast('Debug overlay enabled', 'info');
+                    } else {
+                        debugOverlay.style.display = 'none';
+                        showToast('Debug overlay disabled', 'info');
                     }
                 }
             });
