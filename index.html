@@ -1304,6 +1304,12 @@
                     <div class="stat-label">Route Length</div>
                     <div class="stat-value" id="stat-total">-- m</div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-label">🏷️ Tags</div>
+                    <div class="stat-value" id="stat-markers">
+                        <span id="stat-markers-visible">0</span>/<span id="stat-markers-total">0</span>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -1464,6 +1470,7 @@
         // Will be loaded from route.json (Real GPS data from your Insta360 video!)
         let routeCoordinates = [];
         let routeGeoJSON = null;
+        let routeTimestamps = []; // GPS timestamps for accurate sync
         
         // ============================================
         // GLOBAL VARIABLES
@@ -1488,26 +1495,54 @@
         const video = document.getElementById('video');
         
         // 3D Markers data - Will be populated by auto-tagging
-        // Start with sample buildings (with Matterport links for Sector 5)
-        const markers3D = [
-            {
-                id: 'intellion_park',
-                type: 'landmark',
-                name: 'Intellion Park',
-                description: 'Commercial Office Complex',
-                lat: 28.4115,
-                lng: 77.1130,
-                bearing: 85,
-                videoTime: 45,
-                side: 'left',
-                distance: 89,
-                matterportUrl: 'https://my.matterport.com/show/?m=hwzo9nUjCMP', // ← Matterport 3D Tour!
-                source: 'Demo with 3D Tour'
-            }
-        ];
+        // Start with empty markers array - use Click-to-Tag to add buildings!
+        const markers3D = [];
         
         // System to add more landmarks easily
         let customMarkers = [];
+        
+        // Debug function to check marker status
+        window.debugMarkers = function() {
+            console.log('═══════════════════════════════════════');
+            console.log('🔍 MARKER DEBUG INFO');
+            console.log('═══════════════════════════════════════');
+            console.log(`Total markers in markers3D array: ${markers3D.length}`);
+            console.log(`Total marker elements in DOM: ${markerElements.length}`);
+            console.log(`Total map markers: ${mapLandmarkMarkers.length}`);
+            
+            if (markers3D.length > 0) {
+                console.log('\n📋 Marker List:');
+                markers3D.forEach((m, i) => {
+                    console.log(`${i + 1}. ${m.name}`);
+                    console.log(`   ID: ${m.id}`);
+                    console.log(`   GPS: ${m.lat.toFixed(6)}, ${m.lng.toFixed(6)}`);
+                    console.log(`   Video Time: ${m.videoTime.toFixed(1)}s`);
+                    console.log(`   Type: ${m.type}`);
+                });
+            } else {
+                console.log('\n❌ No markers found!');
+                console.log('💡 Tip: Click on a building on the map to tag it!');
+            }
+            
+            const currentPos = getCurrentGPSPosition();
+            if (currentPos) {
+                console.log('\n📍 Current Position:');
+                console.log(`   GPS: ${currentPos.lat.toFixed(6)}, ${currentPos.lng.toFixed(6)}`);
+                console.log(`   Video Time: ${video.currentTime.toFixed(2)}s / ${video.duration.toFixed(2)}s`);
+                console.log(`   Heading: ${getCurrentHeading().toFixed(1)}°`);
+                console.log(`   Camera Yaw: ${lon.toFixed(1)}°`);
+                
+                if (markers3D.length > 0) {
+                    console.log('\n📏 Distances to Markers:');
+                    markers3D.forEach((m, i) => {
+                        const dist = calculateDistance(currentPos.lat, currentPos.lng, m.lat, m.lng);
+                        const visible = dist <= 200;
+                        console.log(`${i + 1}. ${m.name}: ${dist.toFixed(1)}m ${visible ? '✅ In range' : '❌ Too far'}`);
+                    });
+                }
+            }
+            console.log('═══════════════════════════════════════');
+        };
         
         // Load custom markers from localStorage
         function loadCustomMarkers() {
@@ -1546,6 +1581,24 @@
                 
                 // Convert to Leaflet format [lat, lng]
                 routeCoordinates = routeGeoJSON.geometry.coordinates.map(c => [c[1], c[0]]);
+                
+                // Extract timestamps and convert to seconds since start
+                const times = routeGeoJSON.properties.times;
+                if (times && times.length > 0) {
+                    const startTime = new Date(times[0]);
+                    routeTimestamps = times.map(t => {
+                        const time = new Date(t);
+                        return (time - startTime) / 1000; // Seconds since start
+                    });
+                    
+                    const gpsDuration = routeTimestamps[routeTimestamps.length - 1];
+                    console.log(`✅ GPS Duration: ${gpsDuration.toFixed(1)}s (${Math.floor(gpsDuration/60)}m ${Math.round(gpsDuration%60)}s)`);
+                    console.log(`✅ GPS Start: ${times[0]}`);
+                    console.log(`✅ GPS End: ${times[times.length - 1]}`);
+                } else {
+                    console.warn('⚠️ No timestamps found in GPS data, will use linear interpolation');
+                    routeTimestamps = [];
+                }
                 
                 console.log(`✅ Loaded ${routeCoordinates.length} GPS points from real Insta360 video`);
                 return true;
@@ -1623,6 +1676,63 @@
                 lineCap: 'round',
                 lineJoin: 'round'
             }).addTo(map);
+            
+            // Add click handler to route line for video seeking
+            routeLine.on('click', function(e) {
+                console.log('═══════════════════════════════════════');
+                console.log('🛣️  ROUTE LINE CLICKED');
+                console.log(`   Clicked coordinates: ${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`);
+                console.log('═══════════════════════════════════════');
+                
+                // Stop event from bubbling to map click handler
+                L.DomEvent.stopPropagation(e);
+                
+                // Find nearest point on route
+                const clickedPoint = turf.point([e.latlng.lng, e.latlng.lat]);
+                const nearestPoint = turf.nearestPointOnLine(routeGeoJSON, clickedPoint, { units: 'meters' });
+                
+                console.log('   Nearest point on route:', {
+                    coordinates: nearestPoint.geometry.coordinates,
+                    distanceFromClick: nearestPoint.properties.dist.toFixed(2) + 'm',
+                    locationFraction: nearestPoint.properties.location.toFixed(4)
+                });
+                
+                // Calculate percentage along route
+                const distanceFraction = nearestPoint.properties.location; // 0-1 range
+                const percentage = distanceFraction * 100;
+                const distanceAlongRoute = distanceFraction * totalRouteLength;
+                
+                console.log('   Route position:', {
+                    percentage: percentage.toFixed(2) + '%',
+                    distanceAlongRoute: distanceAlongRoute.toFixed(1) + 'm',
+                    totalRouteLength: totalRouteLength.toFixed(1) + 'm'
+                });
+                
+                // Validate
+                if (isNaN(percentage) || percentage < 0 || percentage > 100) {
+                    console.error('❌ Invalid percentage calculated:', percentage);
+                    showToast('❌ Error calculating position', 'error');
+                    return;
+                }
+                
+                // Check if video is ready
+                if (!video || !video.duration || isNaN(video.duration)) {
+                    console.warn('⚠️ Video not ready yet');
+                    showToast('⚠️ Video loading... please wait', 'warning');
+                    return;
+                }
+                
+                // Seek video
+                console.log(`   Seeking to ${percentage.toFixed(1)}% of video duration (${video.duration.toFixed(2)}s)`);
+                seekVideo(percentage);
+                
+                // Pause video to let user see the location
+                setTimeout(() => {
+                    video.pause();
+                }, 100);
+                
+                showToast(`🎬 Jumped to ${percentage.toFixed(1)}% of route`, 'success');
+            });
             
             // Add start marker
             const startIcon = L.divIcon({
@@ -2076,11 +2186,22 @@
         
         
         async function handleMapClick(e) {
+            // Don't tag if clicking on markers or route line
+            if (e.originalEvent && e.originalEvent.target) {
+                const target = e.originalEvent.target;
+                // Check if click was on a marker or the route line
+                if (target.closest('.leaflet-marker-icon') || 
+                    target.closest('.leaflet-interactive')) {
+                    console.log('🚫 Click was on a marker or route line, ignoring for tagging');
+                    return;
+                }
+            }
+            
             const clickedLat = e.latlng.lat;
             const clickedLng = e.latlng.lng;
             
             console.log('═══════════════════════════════════════');
-            console.log('📍 MAP CLICKED');
+            console.log('📍 MAP BACKGROUND CLICKED (Building Tag Mode)');
             console.log(`   Coordinates: ${clickedLat.toFixed(6)}, ${clickedLng.toFixed(6)}`);
             console.log(`   Shift key: ${e.originalEvent.shiftKey}`);
             console.log('═══════════════════════════════════════');
@@ -2543,17 +2664,59 @@
         }
         
         function getCurrentGPSPosition() {
-            // Get current position from video playback
+            // Get current position from video playback using timestamp-based sync
             if (!video.duration || !routeCoordinates.length) return null;
             
-            const progress = video.currentTime / video.duration;
-            const index = Math.floor(progress * (routeCoordinates.length - 1));
+            let index;
+            
+            // If we have GPS timestamps, use them for accurate sync
+            if (routeTimestamps && routeTimestamps.length > 0) {
+                // Map video time to GPS time
+                const gpsDuration = routeTimestamps[routeTimestamps.length - 1];
+                const videoTime = video.currentTime;
+                
+                // Find the GPS point that corresponds to current video time
+                // Assuming video duration matches GPS duration
+                const gpsTime = (videoTime / video.duration) * gpsDuration;
+                
+                // Find the two GPS points to interpolate between
+                for (let i = 0; i < routeTimestamps.length - 1; i++) {
+                    if (gpsTime >= routeTimestamps[i] && gpsTime <= routeTimestamps[i + 1]) {
+                        // Linear interpolation between points
+                        const t1 = routeTimestamps[i];
+                        const t2 = routeTimestamps[i + 1];
+                        const fraction = (gpsTime - t1) / (t2 - t1);
+                        
+                        // Interpolate coordinates
+                        const lat1 = routeCoordinates[i][0];
+                        const lng1 = routeCoordinates[i][1];
+                        const lat2 = routeCoordinates[i + 1][0];
+                        const lng2 = routeCoordinates[i + 1][1];
+                        
+                        return {
+                            lat: lat1 + (lat2 - lat1) * fraction,
+                            lng: lng1 + (lng2 - lng1) * fraction,
+                            heading: getCurrentHeading(),
+                            gpsIndex: i,
+                            interpolation: fraction
+                        };
+                    }
+                }
+                
+                // If we're past the end, use last point
+                index = routeTimestamps.length - 1;
+            } else {
+                // Fallback to linear distribution if no timestamps
+                const progress = video.currentTime / video.duration;
+                index = Math.floor(progress * (routeCoordinates.length - 1));
+            }
             
             if (index >= 0 && index < routeCoordinates.length) {
                 return {
                     lat: routeCoordinates[index][0],
                     lng: routeCoordinates[index][1],
-                    heading: getCurrentHeading()  // Add heading data
+                    heading: getCurrentHeading(),
+                    gpsIndex: index
                 };
             }
             return null;
@@ -2565,11 +2728,25 @@
                 return 0;  // Default if no heading data
             }
             
-            const progress = video.currentTime / video.duration;
             const headings = routeGeoJSON.properties.headings;
-            const index = Math.floor(progress * (headings.length - 1));
             
-            return headings[index] || 0;
+            // Use timestamp-based indexing if available
+            if (routeTimestamps && routeTimestamps.length > 0) {
+                const gpsDuration = routeTimestamps[routeTimestamps.length - 1];
+                const gpsTime = (video.currentTime / video.duration) * gpsDuration;
+                
+                for (let i = 0; i < routeTimestamps.length - 1; i++) {
+                    if (gpsTime >= routeTimestamps[i] && gpsTime <= routeTimestamps[i + 1]) {
+                        return headings[i] || 0;
+                    }
+                }
+                return headings[headings.length - 1] || 0;
+            } else {
+                // Fallback to linear
+                const progress = video.currentTime / video.duration;
+                const index = Math.floor(progress * (headings.length - 1));
+                return headings[index] || 0;
+            }
         }
         
         function updateMarkerDistances() {
@@ -2977,6 +3154,12 @@
             if (shouldDebugLog && markerElements.length > 0) {
                 console.log(`   ${visibleCount}/${markerElements.length} markers visible in current view`);
             }
+            
+            // Update UI counter
+            const markersTotalEl = document.getElementById('stat-markers-total');
+            const markersVisibleEl = document.getElementById('stat-markers-visible');
+            if (markersTotalEl) markersTotalEl.textContent = markerElements.length;
+            if (markersVisibleEl) markersVisibleEl.textContent = visibleCount;
         }
         
         // Update markers on camera movement
@@ -3684,7 +3867,17 @@ Or wait a minute and try "Auto-Tag" again (servers may be busy).`);
                 clearTagsBtn.addEventListener('click', clearAllTags);
             }
             
-            console.log('✅ Application ready! Click any building on the map to tag it.');
+            console.log('✅ Application ready!');
+            console.log('');
+            console.log('═══════════════════════════════════════');
+            console.log('📖 HOW TO USE:');
+            console.log('═══════════════════════════════════════');
+            console.log('🛣️  Click the GREEN ROUTE LINE → Jump to that video frame');
+            console.log('🏢 Click a BUILDING on map → Auto-tag it (appears in video)');
+            console.log('⌨️  Hold SHIFT + Click → Manually name a location');
+            console.log('🔍 Type debugMarkers() → Check marker status');
+            console.log('═══════════════════════════════════════');
+            console.log('');
         });
     </script>
 </body>
