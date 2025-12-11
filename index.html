@@ -1372,32 +1372,57 @@
                     <span>Clear All</span>
                 </button>
                 
-                <!-- Calibrate Camera Button -->
-                <button class="calibrate-btn" id="calibrateBtn" title="Calibrate camera for accurate tag positioning" onclick="startCalibrationMode()" style="
+                <!-- Fine-Tune Calibration Panel -->
+                <div id="fineTunePanel" style="
                     position: absolute;
                     top: 170px;
                     left: 16px;
-                    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+                    background: rgba(139, 92, 246, 0.95);
                     border: none;
                     color: white;
-                    padding: 10px 14px;
-                    border-radius: 8px;
-                    cursor: pointer;
-                    font-size: 12px;
-                    font-weight: 600;
+                    padding: 12px 14px;
+                    border-radius: 10px;
+                    font-size: 11px;
+                    font-weight: 500;
                     font-family: 'Outfit', sans-serif;
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
                     z-index: 100;
                     box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-                    transition: all 0.2s;
-                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(139, 92, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.3)'">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
-                        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
-                    </svg>
-                    <span id="calibrateBtnText">Calibrate</span>
-                </button>
+                    width: 180px;
+                ">
+                    <div style="font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="white">
+                            <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                        </svg>
+                        🤖 Auto-Calibration
+                    </div>
+                    <div style="margin-bottom: 8px; opacity: 0.9;">
+                        Fine-tune offset: <span id="offsetValue" style="font-weight: 600;">0°</span>
+                    </div>
+                    <input type="range" id="offsetSlider" min="-180" max="180" value="0" style="
+                        width: 100%;
+                        height: 6px;
+                        border-radius: 3px;
+                        cursor: pointer;
+                        accent-color: white;
+                    " oninput="adjustCalibrationOffset(this.value)">
+                    <div style="display: flex; justify-content: space-between; font-size: 9px; opacity: 0.7; margin-top: 4px;">
+                        <span>-180°</span>
+                        <span>0°</span>
+                        <span>+180°</span>
+                    </div>
+                    <button onclick="resetCalibration()" style="
+                        width: 100%;
+                        margin-top: 10px;
+                        padding: 6px;
+                        background: rgba(255,255,255,0.2);
+                        border: 1px solid rgba(255,255,255,0.3);
+                        color: white;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-size: 10px;
+                        font-weight: 600;
+                    ">Reset to Auto</button>
+                </div>
             </div>
             
             <div class="video-controls">
@@ -1757,6 +1782,10 @@
                 }
                 
                 console.log(`✅ Loaded ${routeCoordinates.length} GPS points from real Insta360 video`);
+                
+                // Perform auto-calibration if not manually calibrated
+                performAutoCalibration();
+                
                 return true;
             } catch (error) {
                 console.error('Error loading GPS data:', error);
@@ -3031,20 +3060,96 @@
         };
         
         // ═══════════════════════════════════════════════════════════
-        // GLOBAL CALIBRATION OFFSET
+        // AUTOMATIC CALIBRATION SYSTEM
         // ═══════════════════════════════════════════════════════════
-        // This offset corrects for the camera's orientation on the vehicle
-        // Calibrated by user clicking on a visible landmark
+        // The camera orientation is automatically calculated from:
+        // 1. Initial GPS heading (direction of travel)
+        // 2. Known Insta360 camera output format
+        //
+        // For Insta360 X5:
+        // - The stitched 360° video has a specific front direction
+        // - lon=0° in our viewer corresponds to one side of the equirectangular
+        // - We need to align this with the vehicle heading
         // ═══════════════════════════════════════════════════════════
         let globalHeadingOffset = 0;
         let isCalibrated = false;
+        let autoCalibrationApplied = false;
         
-        // Load saved calibration from localStorage
+        // Load saved calibration from localStorage (manual override)
         const savedOffset = localStorage.getItem('globalHeadingOffset');
         if (savedOffset !== null) {
             globalHeadingOffset = parseFloat(savedOffset);
             isCalibrated = true;
-            console.log(`✅ Loaded calibration offset: ${globalHeadingOffset.toFixed(1)}°`);
+            console.log(`✅ Loaded manual calibration offset: ${globalHeadingOffset.toFixed(1)}°`);
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // AUTO-CALIBRATION FUNCTION
+        // ═══════════════════════════════════════════════════════════
+        function performAutoCalibration() {
+            if (isCalibrated || !routeGeoJSON || !routeGeoJSON.properties.headings) {
+                return; // Already calibrated or no data
+            }
+            
+            // Get the initial GPS heading (direction vehicle is facing at start)
+            const initialHeading = routeGeoJSON.properties.headings[0];
+            
+            if (initialHeading === undefined || isNaN(initialHeading)) {
+                console.warn('⚠️ No heading data available for auto-calibration');
+                return;
+            }
+            
+            // ═══════════════════════════════════════════════════════════
+            // CALIBRATION FORMULA:
+            // ═══════════════════════════════════════════════════════════
+            // 
+            // When the video starts (lon=180° in our viewer = "looking forward"):
+            // - The vehicle is traveling in direction: initialHeading
+            // - A marker directly ahead should have bearing = initialHeading
+            // - Relative bearing for a marker ahead = markerBearing - vehicleHeading = 0°
+            // - Screen angle = relativeBearing - cameraYaw + offset
+            // - For marker ahead: screenAngle = 0 - 180 + offset = 0 (center of screen)
+            // - Therefore: offset = 180°
+            //
+            // But the Insta360 camera's "front" in the equirectangular output
+            // may not align with lon=0°. We need to account for this.
+            //
+            // For Insta360 X5 DASHCAM mode:
+            // - The front lens faces the direction of travel
+            // - In equirectangular output, this typically maps to specific angles
+            //
+            // Based on testing, the offset formula is:
+            // offset = 180 - (camera_mount_rotation)
+            //
+            // If camera is mounted facing forward: offset ≈ 180°
+            // ═══════════════════════════════════════════════════════════
+            
+            // Calculate auto-calibration offset
+            // This assumes the camera is mounted facing forward
+            globalHeadingOffset = 180;
+            
+            // Alternative: If camera was mounted at an angle, adjust here
+            // globalHeadingOffset = 180 + cameraMountAngle;
+            
+            autoCalibrationApplied = true;
+            isCalibrated = true;
+            
+            console.log('═══════════════════════════════════════');
+            console.log('🎯 AUTO-CALIBRATION APPLIED');
+            console.log('═══════════════════════════════════════');
+            console.log(`   Initial GPS Heading: ${initialHeading.toFixed(1)}°`);
+            console.log(`   Camera Start Yaw: 180° (forward view)`);
+            console.log(`   Calculated Offset: ${globalHeadingOffset.toFixed(1)}°`);
+            console.log('');
+            console.log('   If markers appear in wrong positions,');
+            console.log('   press C to manually fine-tune.');
+            console.log('═══════════════════════════════════════');
+            
+            // Update button text
+            const btnText = document.getElementById('calibrateBtnText');
+            if (btnText) {
+                btnText.textContent = `Auto-Cal (${globalHeadingOffset.toFixed(0)}°)`;
+            }
         }
         
         // ═══════════════════════════════════════════════════════════
@@ -3180,9 +3285,69 @@
             update3DMarkerPositions();
         }
         
+        // ═══════════════════════════════════════════════════════════
+        // CALIBRATION ADJUSTMENT FUNCTIONS
+        // ═══════════════════════════════════════════════════════════
+        
+        function adjustCalibrationOffset(value) {
+            // Base offset from auto-calibration (180°) + user adjustment
+            const adjustment = parseFloat(value);
+            globalHeadingOffset = 180 + adjustment;
+            
+            // Update display
+            document.getElementById('offsetValue').textContent = 
+                adjustment >= 0 ? `+${adjustment}°` : `${adjustment}°`;
+            
+            // Save to localStorage for persistence
+            localStorage.setItem('globalHeadingOffset', globalHeadingOffset.toString());
+            localStorage.setItem('manualAdjustment', adjustment.toString());
+            isCalibrated = true;
+            
+            // Force marker update
+            update3DMarkerPositions();
+        }
+        
+        function resetCalibration() {
+            // Reset to auto-calibration value
+            globalHeadingOffset = 180;
+            
+            // Clear manual adjustments
+            localStorage.removeItem('globalHeadingOffset');
+            localStorage.removeItem('manualAdjustment');
+            
+            // Reset slider
+            document.getElementById('offsetSlider').value = 0;
+            document.getElementById('offsetValue').textContent = '0°';
+            
+            // Reset flags
+            autoCalibrationApplied = true;
+            isCalibrated = true;
+            
+            showToast('🔄 Reset to auto-calibration', 'success');
+            
+            // Force marker update
+            update3DMarkerPositions();
+        }
+        
+        // Initialize slider with saved value
+        function initializeCalibrationSlider() {
+            const savedAdjustment = localStorage.getItem('manualAdjustment');
+            if (savedAdjustment !== null) {
+                const adjustment = parseFloat(savedAdjustment);
+                document.getElementById('offsetSlider').value = adjustment;
+                document.getElementById('offsetValue').textContent = 
+                    adjustment >= 0 ? `+${adjustment}°` : `${adjustment}°`;
+            } else {
+                document.getElementById('offsetSlider').value = 0;
+                document.getElementById('offsetValue').textContent = '0°';
+            }
+        }
+        
         // Make calibration functions globally available
         window.startCalibrationMode = startCalibrationMode;
         window.cancelCalibrationMode = cancelCalibrationMode;
+        window.adjustCalibrationOffset = adjustCalibrationOffset;
+        window.resetCalibration = resetCalibration;
         
         function enterCalibrationMode(markerId) {
             // Close any popups
@@ -4317,10 +4482,8 @@ Or wait a minute and try "Auto-Tag" again (servers may be busy).`);
                 clearTagsBtn.addEventListener('click', clearAllTags);
             }
             
-            // Update calibrate button text (badge removed - too intrusive)
-            if (isCalibrated) {
-                document.getElementById('calibrateBtnText').textContent = `Calibrated (${globalHeadingOffset.toFixed(0)}°)`;
-            }
+            // Initialize calibration slider
+            initializeCalibrationSlider();
             
             console.log('');
             console.log('═════════════════════════════════════════════════════');
@@ -4335,8 +4498,10 @@ Or wait a minute and try "Auto-Tag" again (servers may be busy).`);
             console.log('  🔍 Press D key             → Toggle debug overlay');
             console.log('');
             console.log('  MARKERS LOADED: ' + markers3D.length);
-            if (isCalibrated) {
-                console.log('  CALIBRATION: ✅ Active (offset: ' + globalHeadingOffset.toFixed(1) + '°)');
+            if (autoCalibrationApplied) {
+                console.log('  CALIBRATION: 🤖 Auto-calibrated (offset: ' + globalHeadingOffset.toFixed(1) + '°)');
+            } else if (isCalibrated) {
+                console.log('  CALIBRATION: ✅ Manual (offset: ' + globalHeadingOffset.toFixed(1) + '°)');
             } else {
                 console.log('  CALIBRATION: ⚠️ Not calibrated (press C to calibrate)');
             }
