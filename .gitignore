@@ -1,0 +1,9 @@
+# Large video files (too big for GitHub)
+*.mp4
+*.insv
+*.zip
+*.pb
+
+# Keep only essential files
+# Note: Video files should be hosted separately or use Git LFS
+

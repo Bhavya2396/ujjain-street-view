@@ -1,0 +1,20 @@
+{
+    "EmuVersion": 1,
+    "playlist": [
+        {
+            "isValid": true,
+            "totalSrcDurationMs": 60060,
+            "url": "/Volumes/Insta360 X5/DCIM/Camera01/VID_20251210_123710_00_001.insv"
+        },
+        {
+            "isValid": true,
+            "totalSrcDurationMs": 60060,
+            "url": "/Volumes/Insta360 X5/DCIM/Camera01/VID_20251210_123811_00_002.insv"
+        },
+        {
+            "isValid": true,
+            "totalSrcDurationMs": 33967.266667,
+            "url": "/Volumes/Insta360 X5/DCIM/Camera01/VID_20251210_123911_00_003.insv"
+        }
+    ]
+}

@@ -1,0 +1,36 @@
+{
+  "tags": [
+    {
+      "id": 1,
+      "timestamp": 122.38,
+      "gps": {
+        "lat": 28.410578379103207,
+        "lng": 77.1085698277963
+      },
+      "place": {
+        "name": "BBR Coffee by Before British Raj",
+        "lat": 28.411246,
+        "lon": 77.1080579,
+        "distance": 89.5
+      },
+      "category": "cafe",
+      "type": "Cafe",
+      "icon": "\u2615",
+      "tags": {
+        "addr:city": "Gurgaon",
+        "addr:housenumber": "10A",
+        "addr:postcode": "122011",
+        "addr:street": "Magunum Towers, Golf Course Ext.",
+        "amenity": "cafe",
+        "cuisine": "coffee_shop;cafe",
+        "internet_access": "yes",
+        "internet_access:fee": "no",
+        "name": "BBR Coffee by Before British Raj",
+        "outdoor_seating": "yes",
+        "phone": "+911244950506",
+        "website": "https://beforebritishraj.com/"
+      }
+    }
+  ],
+  "total": 1
+}

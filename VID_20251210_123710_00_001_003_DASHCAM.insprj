@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="2.0.0">
+    <meta version="5.8.4" creation_time="1765352203" app="Insta360 Studio 5.8.4"/>
+    <file_group folder="/Volumes/Insta360 X5/DCIM/Camera01" is_cloud_file="0" cloud_file_set_offset="1" count="3" type="dashcam_video" cloud_media_id="/Volumes/Insta360 X5/DCIM/Camera01/VID_20251210_123710_00_001_003_DASHCAM.insv" image_type="0">
+        <loop_json path="/Users/bhavyasethi/Documents/Insta360/Studio/Project/15158a9e30686d7b1d8b45626319cd40/VID_20251210_123710_00_001_003_DASHCAM.json"/>
+        <file name="VID_20251210_123710_00_001.insv"/>
+        <file name="VID_20251210_123811_00_002.insv"/>
+        <file name="VID_20251210_123911_00_003.insv"/>
+    </file_group>
+    <schemes default="Clip1">
+        <scheme has_deeptrack_user_edited="0" has_deeptrack_user_added="0" app_data_id="" has_keyframe_user_edited="0" app_data_ratio="" has_keyframe_user_added="0" last_edit_time="2025.12.10 13:06:43" has_headtrack_keyframe_user_edited="0" creation="2025.12.10 12:53:46.359" app_data_types="" id="Clip1" app_data_source="" load_hight_data="0" app_data_mode="" has_headtrack_keyframe_user_added="0">
+            <preference ratio_width="16" trim_end="154087" shell_corrected="0" duration="154087" ratio_height="9" trim_start="0" last_trim_edit_time="1765351426362" favourite="0">
+                <bullet_time distance="0.8125" fov="1.0421360963658142"/>
+                <rendering directional_lock="0" pano_fpv_horizontal_on="0" ai_raw="0" yaw="0" motion_blur="0" stab_type="0" stabilization="1" head_tracking="0" projection="64" deversion="3.5" handle_pano_fpv="0" use_custom_transform_params="0" stabilizer_type_edited="0" propeller_guard_on="0" cold_shoe="0" stab_level="0" stab_direction="0" pitch="0" roll="0" camera_movement="0" alpha="0" dewarp="15" cooling_shell="0" immersion_stab="0" distance="0" rotate_angle="0" dewarp_mode="0" input_data_type="0" blend_angle="0" fov="1.6580628156661987" accessory="0" pano_fpv="0">
+                    <play_rate/>
+                </rendering>
+                <audio denoise_type="0" volume="0.5"/>
+                <optimization>
+                    <calibration offset=""/>
+                    <stitching color_highlights_strength="0" color_plus_strength="30" color_adjust="1" color_shadows_strength="0" color_contrast_strength="0" audio_tracks_delay="-2147483648" lut="0" horizontal_correct="0" ltm_strength="30" keyframe_duration_s="5" color_definition_strength="0" is_selfie="0" under_water_style="0" horizontal_correct_angle="0" optical_flow_stitching="0" color_blackpoint_strength="0" audio_tracks_default_delay="-2147483648" audio_mixing="0" audio_mixing_weight="0" under_water_strength="100" fade_out_duration_s="3" motion_blur_threshold="85" under_water_correction="0" stab_input_data_type="0" color_exposure_strength="0" local_tone_mapping="0" color_brightness_strength="0" color_tint_strength="0" fade_in_duration_s="5" motion_blur_edited="0" templete_stitching="0" color_vibrance_strength="0" color_enhancement="0" direct_focus="0" beauty_mode="0" color_saturation_strength="0" ai_stitch="1" motion_blur_strength="50" color_warmth_strength="0" image_fusion="1" dynamic_stitching="0" audio_mode="9" horizontal_correct_default_angle="0" de_version="3.5"/>
+                </optimization>
+                <logo enable_time_logo="1" selected_logo="/panels/none" enable_logo="0" logo_location="0" time_logo_format="1" logo_size="0.30000001" logo_rotate="0" logo_corner_radius="0" time_logo_transparency="100" logo_feather="0"/>
+            </preference>
+            <timeline app_import_id="" duration_ms="154087">
+                <recording>
+                    <keyframes/>
+                    <transitions/>
+                    <headtrackareas/>
+                    <deep_track_areas/>
+                </recording>
+            </timeline>
+            <dashboard_setting dashboard_group_type="1" dashboard_visible="1" cloud_style="{&#xa;    &quot;enableItems&quot;: [&#xa;    ],&#xa;    &quot;measureUnit&quot;: &quot;metric&quot;,&#xa;    &quot;positions&quot;: {&#xa;        &quot;data&quot;: {&#xa;            &quot;acceleration&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.8549,&#xa;                &quot;y&quot;: 0.1093,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;bendingAngle&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.5,&#xa;                &quot;y&quot;: 0.8343,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;cadence&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.8849,&#xa;                &quot;y&quot;: 0.3222,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;dateTime&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.8981,&#xa;                &quot;y&quot;: 0.819,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;direction&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.1857,&#xa;                &quot;y&quot;: 0.9227,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;distance&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.5021,&#xa;                &quot;y&quot;: 0.0981,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;elevation&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.1331,&#xa;                &quot;y&quot;: 0.475,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;energyConsumption&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.8017,&#xa;                &quot;y&quot;: 0.0919,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;heartRate&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.8849,&#xa;                &quot;y&quot;: 0.3991,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;pace&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.3158,&#xa;                &quot;y&quot;: 0.0944,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;power&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.1331,&#xa;                &quot;y&quot;: 0.5565,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;route&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.8981,&#xa;                &quot;y&quot;: 0.719,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;slope&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.1331,&#xa;                &quot;y&quot;: 0.3231,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;speed&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.162,&#xa;                &quot;y&quot;: 0.8019,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;steps&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.1967,&#xa;                &quot;y&quot;: 0.0944,&#xa;                &quot;zIndex&quot;: 0&#xa;            },&#xa;            &quot;verticalSpeed&quot;: {&#xa;                &quot;opacity&quot;: 1,&#xa;                &quot;rotation&quot;: 0,&#xa;                &quot;scale&quot;: 1,&#xa;                &quot;x&quot;: 0.875,&#xa;                &quot;y&quot;: 0.4,&#xa;                &quot;zIndex&quot;: 0&#xa;            }&#xa;        },&#xa;        &quot;hasChange&quot;: false,&#xa;        &quot;ratio&quot;: &quot;16_9&quot;&#xa;    },&#xa;    &quot;selectedLayout&quot;: 0,&#xa;    &quot;template&quot;: &quot;bmw&quot;&#xa;}&#xa;" dashboard_handled="1" dashboard_group_use="1" dashboard_group_id="/Volumes/Insta360 X5/DCIM/Camera01/VID_20251210_123710_00_001_003_DASHCAM.insv"/>
+            <pano_animation>
+                <configs>
+                    <config trim_end="20000" id="1" duration="20000" trim_start="0"/>
+                    <config trim_end="25000" id="2" duration="25000" trim_start="0"/>
+                    <config trim_end="20000" id="3" duration="20000" trim_start="0"/>
+                    <config trim_end="15000" id="4" duration="15000" trim_start="0"/>
+                    <config trim_end="20000" id="5" duration="20000" trim_start="0"/>
+                </configs>
+            </pano_animation>
+        </scheme>
+        <scheme has_deeptrack_user_edited="0" has_deeptrack_user_added="0" app_data_id="" has_keyframe_user_edited="0" app_data_ratio="" has_keyframe_user_added="0" last_edit_time="2025.12.10 12:53:46" has_headtrack_keyframe_user_edited="0" creation="2025.12.10 12:53:46.642" app_data_types="" id="backup" app_data_source="" load_hight_data="0" app_data_mode="" has_headtrack_keyframe_user_added="0">
+            <preference ratio_width="16" trim_end="154087" shell_corrected="0" duration="154087" ratio_height="9" trim_start="0" last_trim_edit_time="1765351426362" favourite="0">
+                <bullet_time distance="0.8125" fov="1.0421360963658142"/>
+                <rendering directional_lock="0" pano_fpv_horizontal_on="0" ai_raw="0" yaw="0" motion_blur="0" stab_type="0" stabilization="1" head_tracking="0" projection="64" deversion="3.5" handle_pano_fpv="0" use_custom_transform_params="0" stabilizer_type_edited="1" propeller_guard_on="0" cold_shoe="0" stab_level="0" stab_direction="0" pitch="0" roll="0" camera_movement="0" alpha="0" dewarp="15" cooling_shell="0" immersion_stab="0" distance="0.60000002384185791" rotate_angle="0" dewarp_mode="0" input_data_type="0" blend_angle="0" fov="1.3089969158172607" accessory="0" pano_fpv="0">
+                    <play_rate/>
+                </rendering>
+                <audio denoise_type="0" volume="0.5"/>
+                <optimization>
+                    <calibration offset=""/>
+                    <stitching color_highlights_strength="0" color_plus_strength="30" color_adjust="1" color_shadows_strength="0" color_contrast_strength="0" audio_tracks_delay="-2147483648" lut="0" horizontal_correct="0" ltm_strength="30" keyframe_duration_s="5" color_definition_strength="0" is_selfie="0" under_water_style="0" horizontal_correct_angle="0" optical_flow_stitching="0" color_blackpoint_strength="0" audio_tracks_default_delay="-2147483648" audio_mixing="0" audio_mixing_weight="0" under_water_strength="100" fade_out_duration_s="3" motion_blur_threshold="85" under_water_correction="0" stab_input_data_type="0" color_exposure_strength="0" local_tone_mapping="0" color_brightness_strength="0" color_tint_strength="0" fade_in_duration_s="5" motion_blur_edited="0" templete_stitching="0" color_vibrance_strength="0" color_enhancement="0" direct_focus="0" beauty_mode="0" color_saturation_strength="0" ai_stitch="1" motion_blur_strength="50" color_warmth_strength="0" image_fusion="1" dynamic_stitching="0" audio_mode="9" horizontal_correct_default_angle="0" de_version="3.5"/>
+                </optimization>
+                <logo enable_time_logo="1" selected_logo="" enable_logo="0" logo_location="0" time_logo_format="1" logo_size="0.30000001" logo_rotate="0" logo_corner_radius="0" time_logo_transparency="100" logo_feather="0"/>
+            </preference>
+            <timeline app_import_id="" duration_ms="154087">
+                <recording>
+                    <keyframes/>
+                    <transitions/>
+                    <headtrackareas/>
+                    <deep_track_areas/>
+                </recording>
+            </timeline>
+            <dashboard_setting dashboard_group_type="0" dashboard_visible="0" cloud_style="" dashboard_handled="0" dashboard_group_use="1" dashboard_group_id=""/>
+            <pano_animation>
+                <configs/>
+            </pano_animation>
+        </scheme>
+    </schemes>
+    <bigboom>
+        <config>
+            <aspect_ratio height="9" width="16"/>
+        </config>
+        <clips/>
+    </bigboom>
+</project>
