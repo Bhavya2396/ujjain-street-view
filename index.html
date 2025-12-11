@@ -1715,7 +1715,7 @@
                 
                 // Find nearest point on route
                 const clickedPoint = turf.point([e.latlng.lng, e.latlng.lat]);
-                const nearestPoint = turf.nearestPointOnLine(routeGeoJSON, clickedPoint, { units: 'meters' });
+                const nearestPoint = turf.nearestPointOnLine(routeGeoJSON.geometry, clickedPoint, { units: 'meters' });
                 
                 console.log('   Nearest point on route:', {
                     coordinates: nearestPoint.geometry.coordinates,
@@ -1979,7 +1979,7 @@
             
             // Calculate timestamp based on marker's GPS location
             const landmarkPoint = turf.point([marker.lng, marker.lat]);
-            const nearestPoint = turf.nearestPointOnLine(routeGeoJSON, landmarkPoint, { units: 'meters' });
+            const nearestPoint = turf.nearestPointOnLine(routeGeoJSON.geometry, landmarkPoint, { units: 'meters' });
             
             // nearestPoint.properties.location is a FRACTION (0 to 1) of total route length
             // Convert directly to percentage
@@ -2149,7 +2149,7 @@
             try {
                 // Calculate nearest point on route
                 const buildingPoint = turf.point([lng, lat]);
-                const nearestPoint = turf.nearestPointOnLine(routeGeoJSON, buildingPoint, { units: 'meters' });
+                const nearestPoint = turf.nearestPointOnLine(routeGeoJSON.geometry, buildingPoint, { units: 'meters' });
                 const distanceFromRoute = nearestPoint.properties.dist;
                 
                 // Calculate video timestamp
@@ -2334,7 +2334,7 @@
                 
                 // Calculate nearest point on route
                 const buildingPoint = turf.point([lon, lat]);
-                const nearestPoint = turf.nearestPointOnLine(routeGeoJSON, buildingPoint, { units: 'meters' });
+                const nearestPoint = turf.nearestPointOnLine(routeGeoJSON.geometry, buildingPoint, { units: 'meters' });
                 const distanceFromRoute = nearestPoint.properties.dist;
                 
                 // Check if too far from route
@@ -3135,29 +3135,6 @@
                     screenAngle += data.calibratedOffset;
                 }
                 
-                // Collect debug info for all markers
-                debugInfo.push({
-                    name: data.name,
-                    distance: distanceMeters.toFixed(0),
-                    markerBearing: markerBearing.toFixed(1),
-                    relativeBearing: relativeBearing.toFixed(1),
-                    side: relativeBearing > 0 ? 'RIGHT' : 'LEFT',
-                    screenAngle: screenAngle.toFixed(1),
-                    isInView: isInView,
-                    x: Math.round(x),
-                    y: Math.round(y)
-                });
-                
-                // Debug log for first marker every 100 updates
-                if (shouldDebugLog && data.id === markers3D[0]?.id) {
-                    console.log(`   Marker: ${data.name}`);
-                    console.log(`     Compass Bearing: ${markerBearing.toFixed(1)}°`);
-                    console.log(`     Vehicle Heading: ${vehicleHeading.toFixed(1)}°`);
-                    console.log(`     Relative Bearing: ${relativeBearing.toFixed(1)}° (${relativeBearing > 0 ? 'RIGHT' : 'LEFT'})`);
-                    console.log(`     Camera Yaw: ${cameraYaw.toFixed(1)}°`);
-                    console.log(`     Screen Angle: ${screenAngle.toFixed(1)}°`);
-                }
-                
                 // ═══════════════════════════════════════════════════════════
                 // PROJECT TO SCREEN COORDINATES
                 // ═══════════════════════════════════════════════════════════
@@ -3182,11 +3159,35 @@
                 
                 // Calculate opacity based on angle (fade at edges)
                 let opacity = 1.0;
-                const angleDeg = Math.abs(adjustedBearing * 180 / Math.PI);
-                if (angleDeg > 90) {
-                    opacity = Math.max(0.3, 1 - (angleDeg - 90) / 30); // Fade beyond 90°
+                const screenAngleAbs = Math.abs(screenAngle);
+                if (screenAngleAbs > 90) {
+                    opacity = Math.max(0.3, 1 - (screenAngleAbs - 90) / 30); // Fade beyond 90°
                 } else {
-                    opacity = Math.max(0.5, Math.cos(adjustedBearing));
+                    opacity = Math.max(0.5, 1 - (screenAngleAbs / 90) * 0.5); // Fade gradually
+                }
+                
+                // Collect debug info for all markers (AFTER calculations)
+                debugInfo.push({
+                    name: data.name,
+                    distance: distanceMeters.toFixed(0),
+                    markerBearing: markerBearing.toFixed(1),
+                    relativeBearing: relativeBearing.toFixed(1),
+                    side: relativeBearing > 0 ? 'RIGHT' : 'LEFT',
+                    screenAngle: screenAngle.toFixed(1),
+                    isInView: isInView,
+                    x: Math.round(x),
+                    y: Math.round(y)
+                });
+                
+                // Debug log for first marker every 100 updates
+                if (shouldDebugLog && data.id === markers3D[0]?.id) {
+                    console.log(`   Marker: ${data.name}`);
+                    console.log(`     Compass Bearing: ${markerBearing.toFixed(1)}°`);
+                    console.log(`     Vehicle Heading: ${vehicleHeading.toFixed(1)}°`);
+                    console.log(`     Relative Bearing: ${relativeBearing.toFixed(1)}° (${relativeBearing > 0 ? 'RIGHT' : 'LEFT'})`);
+                    console.log(`     Camera Yaw: ${cameraYaw.toFixed(1)}°`);
+                    console.log(`     Screen Angle: ${screenAngle.toFixed(1)}°`);
+                    console.log(`     Screen Position: (${Math.round(x)}, ${Math.round(y)})`);
                 }
                 
                 // Scale based on distance (closer = bigger)
@@ -3838,7 +3839,7 @@
                     
                     // Calculate nearest point on route
                     const poiPoint = turf.point([lon, lat]);
-                    const nearestPoint = turf.nearestPointOnLine(routeGeoJSON, poiPoint, { units: 'meters' });
+                    const nearestPoint = turf.nearestPointOnLine(routeGeoJSON.geometry, poiPoint, { units: 'meters' });
                     const distance = nearestPoint.properties.dist;
                     
                     // Only include if within 150 meters of route
