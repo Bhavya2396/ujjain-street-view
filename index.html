@@ -1371,6 +1371,33 @@
                     </svg>
                     <span>Clear All</span>
                 </button>
+                
+                <!-- Calibrate Camera Button -->
+                <button class="calibrate-btn" id="calibrateBtn" title="Calibrate camera for accurate tag positioning" onclick="startCalibrationMode()" style="
+                    position: absolute;
+                    top: 170px;
+                    left: 16px;
+                    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+                    border: none;
+                    color: white;
+                    padding: 10px 14px;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    font-weight: 600;
+                    font-family: 'Outfit', sans-serif;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    z-index: 100;
+                    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+                    transition: all 0.2s;
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(139, 92, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(139, 92, 246, 0.3)'">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
+                        <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3c-.46-4.17-3.77-7.48-7.94-7.94V1h-2v2.06C6.83 3.52 3.52 6.83 3.06 11H1v2h2.06c.46 4.17 3.77 7.48 7.94 7.94V23h2v-2.06c4.17-.46 7.48-3.77 7.94-7.94H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+                    </svg>
+                    <span id="calibrateBtnText">Calibrate</span>
+                </button>
             </div>
             
             <div class="video-controls">
@@ -1410,6 +1437,75 @@
         🎯 Drag the marker to its correct position
         <button onclick="saveCalibration()">Save Position</button>
         <button onclick="cancelCalibration()">Cancel</button>
+    </div>
+    
+    <!-- Calibration Panel (Fixed bottom) -->
+    <div id="calibrationPanel" style="
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, rgba(139, 92, 246, 0.95), rgba(109, 40, 217, 0.95));
+        color: white;
+        padding: 15px 25px;
+        border-radius: 12px;
+        font-family: 'Outfit', sans-serif;
+        font-size: 14px;
+        z-index: 1500;
+        display: none;
+        box-shadow: 0 4px 30px rgba(139, 92, 246, 0.4);
+        text-align: center;
+        max-width: 500px;
+    ">
+        <div id="calibrationStep1" style="display: block;">
+            <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px;">🎯 Camera Calibration</div>
+            <div style="margin-bottom: 15px; opacity: 0.9;">
+                Click on a <strong>known landmark</strong> that you can see in the video right now.
+            </div>
+            <button onclick="cancelCalibrationMode()" style="
+                padding: 8px 20px;
+                background: rgba(255,255,255,0.2);
+                border: 1px solid rgba(255,255,255,0.3);
+                color: white;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+            ">Cancel</button>
+        </div>
+        <div id="calibrationStep2" style="display: none;">
+            <div style="font-weight: 700; font-size: 16px; margin-bottom: 10px;">✅ Location Selected</div>
+            <div style="margin-bottom: 15px; opacity: 0.9;">
+                Now click the landmark on the <strong>map</strong> that matches what you clicked.
+            </div>
+            <button onclick="cancelCalibrationMode()" style="
+                padding: 8px 20px;
+                background: rgba(255,255,255,0.2);
+                border: 1px solid rgba(255,255,255,0.3);
+                color: white;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 600;
+            ">Cancel</button>
+        </div>
+    </div>
+    
+    <!-- Calibration Status Badge -->
+    <div id="calibrationBadge" style="
+        position: fixed;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.8);
+        color: #f80;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-family: 'Outfit', sans-serif;
+        font-size: 12px;
+        z-index: 1400;
+        display: none;
+        cursor: pointer;
+    " onclick="startCalibrationMode()">
+        ⚠️ Not calibrated - Click to calibrate
     </div>
     
     <!-- Debug Overlay (Toggle with 'D' key) -->
@@ -2212,6 +2308,18 @@
         
         
         async function handleMapClick(e) {
+            const clickedLat = e.latlng.lat;
+            const clickedLng = e.latlng.lng;
+            
+            // ═══════════════════════════════════════════════════════════
+            // CHECK FOR CALIBRATION MODE
+            // ═══════════════════════════════════════════════════════════
+            if (calibrationModeActive && calibrationClickedAngle !== null) {
+                console.log('🎯 Calibration map click:', clickedLat.toFixed(6), clickedLng.toFixed(6));
+                completeCalibration(clickedLat, clickedLng);
+                return; // Don't create a tag
+            }
+            
             // Don't tag if clicking on markers or route line
             if (e.originalEvent && e.originalEvent.target) {
                 const target = e.originalEvent.target;
@@ -2222,9 +2330,6 @@
                     return;
                 }
             }
-            
-            const clickedLat = e.latlng.lat;
-            const clickedLng = e.latlng.lng;
             
             console.log('═══════════════════════════════════════');
             console.log('📍 MAP BACKGROUND CLICKED (Building Tag Mode)');
@@ -2526,6 +2631,11 @@
         }
         
         function onPointerDown(event) {
+            // Check if in calibration mode - handle calibration click
+            if (calibrationModeActive && handleVideoClickForCalibration(event)) {
+                return; // Don't start camera rotation
+            }
+            
             isUserInteracting = true;
             onPointerDownMouseX = event.clientX;
             onPointerDownMouseY = event.clientY;
@@ -2885,6 +2995,160 @@
             startX: 0
         };
         
+        // ═══════════════════════════════════════════════════════════
+        // GLOBAL CALIBRATION OFFSET
+        // ═══════════════════════════════════════════════════════════
+        // This offset corrects for the camera's orientation on the vehicle
+        // Calibrated by user clicking on a visible landmark
+        // ═══════════════════════════════════════════════════════════
+        let globalHeadingOffset = 0;
+        let isCalibrated = false;
+        
+        // Load saved calibration from localStorage
+        const savedOffset = localStorage.getItem('globalHeadingOffset');
+        if (savedOffset !== null) {
+            globalHeadingOffset = parseFloat(savedOffset);
+            isCalibrated = true;
+            console.log(`✅ Loaded calibration offset: ${globalHeadingOffset.toFixed(1)}°`);
+        }
+        
+        // ═══════════════════════════════════════════════════════════
+        // CLICK-TO-CALIBRATE SYSTEM
+        // ═══════════════════════════════════════════════════════════
+        let calibrationModeActive = false;
+        let calibrationClickedAngle = null; // Where user clicked in video (screen angle)
+        
+        function startCalibrationMode() {
+            calibrationModeActive = true;
+            calibrationClickedAngle = null;
+            
+            // Show calibration panel
+            document.getElementById('calibrationPanel').style.display = 'block';
+            document.getElementById('calibrationStep1').style.display = 'block';
+            document.getElementById('calibrationStep2').style.display = 'none';
+            
+            // Change cursor
+            document.getElementById('video-container').style.cursor = 'crosshair';
+            
+            showToast('🎯 Click on a landmark you can SEE in the video', 'info');
+            console.log('🎯 Calibration mode started - click on a visible landmark in the video');
+        }
+        
+        function cancelCalibrationMode() {
+            calibrationModeActive = false;
+            calibrationClickedAngle = null;
+            
+            // Hide panel
+            document.getElementById('calibrationPanel').style.display = 'none';
+            
+            // Reset cursor
+            document.getElementById('video-container').style.cursor = 'grab';
+            
+            showToast('Calibration cancelled', 'info');
+        }
+        
+        function handleVideoClickForCalibration(e) {
+            if (!calibrationModeActive) return false;
+            
+            const container = document.getElementById('video-container');
+            const rect = container.getBoundingClientRect();
+            
+            // Get click position relative to video center
+            const clickX = e.clientX - rect.left;
+            const centerX = rect.width / 2;
+            
+            // Calculate screen angle from click position
+            // Convert pixel offset to degrees (assuming ~75° FOV)
+            const FOV = 75;
+            const pixelsToDegrees = FOV / rect.width;
+            const screenOffsetDegrees = (clickX - centerX) * pixelsToDegrees;
+            
+            // The clicked angle in world space = camera yaw + screen offset
+            calibrationClickedAngle = lon + screenOffsetDegrees;
+            
+            console.log('📍 Calibration click:');
+            console.log(`   Screen position: ${clickX.toFixed(0)}px from left`);
+            console.log(`   Offset from center: ${(clickX - centerX).toFixed(0)}px`);
+            console.log(`   Screen angle offset: ${screenOffsetDegrees.toFixed(1)}°`);
+            console.log(`   Camera yaw: ${lon.toFixed(1)}°`);
+            console.log(`   World angle clicked: ${calibrationClickedAngle.toFixed(1)}°`);
+            
+            // Move to step 2
+            document.getElementById('calibrationStep1').style.display = 'none';
+            document.getElementById('calibrationStep2').style.display = 'block';
+            
+            showToast('✅ Now click that landmark on the MAP', 'success');
+            
+            return true; // Prevent normal video interaction
+        }
+        
+        function completeCalibration(mapLat, mapLng) {
+            if (!calibrationModeActive || calibrationClickedAngle === null) return;
+            
+            // Get current GPS position
+            const currentPos = getCurrentGPSPosition();
+            if (!currentPos) {
+                showToast('❌ GPS position not available', 'error');
+                cancelCalibrationMode();
+                return;
+            }
+            
+            // Calculate what angle the landmark SHOULD be at (mathematical bearing)
+            const markerBearing = calculateBearing(
+                currentPos.lat, currentPos.lng,
+                mapLat, mapLng
+            );
+            
+            // Get current vehicle heading
+            const vehicleHeading = getCurrentHeading();
+            
+            // Calculate relative bearing (where it SHOULD appear)
+            let shouldBeAngle = markerBearing - vehicleHeading;
+            while (shouldBeAngle > 180) shouldBeAngle -= 360;
+            while (shouldBeAngle < -180) shouldBeAngle += 360;
+            
+            // Calculate the offset needed
+            // Offset = where user clicked - where we calculated it should be
+            globalHeadingOffset = calibrationClickedAngle - shouldBeAngle;
+            
+            // Normalize offset
+            while (globalHeadingOffset > 180) globalHeadingOffset -= 360;
+            while (globalHeadingOffset < -180) globalHeadingOffset += 360;
+            
+            // Save to localStorage
+            localStorage.setItem('globalHeadingOffset', globalHeadingOffset.toString());
+            isCalibrated = true;
+            
+            console.log('═══════════════════════════════════════');
+            console.log('✅ CALIBRATION COMPLETE!');
+            console.log('═══════════════════════════════════════');
+            console.log(`   Marker bearing: ${markerBearing.toFixed(1)}°`);
+            console.log(`   Vehicle heading: ${vehicleHeading.toFixed(1)}°`);
+            console.log(`   Should appear at: ${shouldBeAngle.toFixed(1)}°`);
+            console.log(`   User clicked at: ${calibrationClickedAngle.toFixed(1)}°`);
+            console.log(`   Calculated offset: ${globalHeadingOffset.toFixed(1)}°`);
+            console.log('═══════════════════════════════════════');
+            
+            // Hide calibration panel
+            document.getElementById('calibrationPanel').style.display = 'none';
+            document.getElementById('calibrationBadge').style.display = 'none';
+            
+            calibrationModeActive = false;
+            calibrationClickedAngle = null;
+            
+            // Reset cursor
+            document.getElementById('video-container').style.cursor = 'grab';
+            
+            showToast(`✅ Calibrated! Offset: ${globalHeadingOffset.toFixed(1)}°`, 'success');
+            
+            // Force update markers with new offset
+            update3DMarkerPositions();
+        }
+        
+        // Make calibration functions globally available
+        window.startCalibrationMode = startCalibrationMode;
+        window.cancelCalibrationMode = cancelCalibrationMode;
+        
         function enterCalibrationMode(markerId) {
             // Close any popups
             const existing = document.querySelector('.marker-popup');
@@ -3115,6 +3379,14 @@
                 let relativeBearing = markerBearing - vehicleHeading;
                 
                 // Normalize to -180 to 180 range (right is positive, left is negative)
+                while (relativeBearing > 180) relativeBearing -= 360;
+                while (relativeBearing < -180) relativeBearing += 360;
+                
+                // Step 2.5: Apply global calibration offset!
+                // This corrects for camera mounting orientation
+                relativeBearing += globalHeadingOffset;
+                
+                // Normalize again after offset
                 while (relativeBearing > 180) relativeBearing -= 360;
                 while (relativeBearing < -180) relativeBearing += 360;
                 
@@ -3468,6 +3740,18 @@
                         debugOverlay.style.display = 'none';
                         showToast('Debug overlay disabled', 'info');
                     }
+                }
+                
+                // 'C' key: Start calibration
+                if (e.key === 'c' || e.key === 'C') {
+                    if (!calibrationModeActive) {
+                        startCalibrationMode();
+                    }
+                }
+                
+                // Escape key: Cancel calibration
+                if (e.key === 'Escape' && calibrationModeActive) {
+                    cancelCalibrationMode();
                 }
             });
         }
@@ -3989,6 +4273,14 @@ Or wait a minute and try "Auto-Tag" again (servers may be busy).`);
             const clearTagsBtn = document.getElementById('clearTagsBtn');
             if (clearTagsBtn) {
                 clearTagsBtn.addEventListener('click', clearAllTags);
+            }
+            
+            // Show calibration status
+            if (!isCalibrated) {
+                document.getElementById('calibrationBadge').style.display = 'block';
+                document.getElementById('calibrateBtnText').textContent = 'Calibrate (Required!)';
+            } else {
+                document.getElementById('calibrateBtnText').textContent = `Calibrated (${globalHeadingOffset.toFixed(0)}°)`;
             }
             
             console.log('✅ Application ready!');
