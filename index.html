@@ -1617,8 +1617,23 @@
         const video = document.getElementById('video');
         
         // 3D Markers data - Will be populated by auto-tagging
-        // Start with empty markers array - use Click-to-Tag to add buildings!
-        const markers3D = [];
+        // Start with sample marker - Intellion Park with Matterport 3D tour!
+        const markers3D = [
+            {
+                id: 'intellion_park',
+                type: 'landmark',
+                name: 'Intellion Park',
+                description: 'Commercial Office Complex',
+                lat: 28.412800,  // Adjusted to be near the route
+                lng: 77.113500,
+                bearing: 85,
+                videoTime: 30,
+                side: 'right',
+                distance: 120,
+                matterportUrl: 'https://my.matterport.com/show/?m=SxQL3iGyoDo', // Your Matterport embed
+                source: 'Demo with 3D Tour'
+            }
+        ];
         
         // System to add more landmarks easily
         let customMarkers = [];
@@ -3424,10 +3439,17 @@
                 const horizontalFraction = screenAngle / halfFOV;
                 const x = centerX + (horizontalFraction * containerRect.width * 0.35); // 0.35 = scale factor
                 
-                // Vertical position (simplified, based on pitch)
+                // Vertical position - place markers ABOVE center
+                // Tags should appear above the horizon, like street signs
                 const cameraPitch = lat; // vertical camera angle
-                const verticalOffset = Math.sin(cameraPitch * Math.PI / 180) * 50;
-                const y = centerY - verticalOffset;
+                const verticalOffset = Math.sin(cameraPitch * Math.PI / 180) * 30;
+                
+                // Base position above center (higher on screen = lower y value)
+                // Scale based on distance (closer = higher up)
+                const baseHeight = containerRect.height * 0.35; // 35% from top (above center)
+                const distanceScale = Math.max(0.8, 1 - (distanceMeters / 200) * 0.2); // Closer = slightly higher
+                
+                const y = baseHeight - verticalOffset + ((1 - distanceScale) * 50);
                 
                 // Calculate opacity based on angle (fade at edges)
                 let opacity = 1.0;
