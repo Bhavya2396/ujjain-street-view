@@ -1489,24 +1489,8 @@
         </div>
     </div>
     
-    <!-- Calibration Status Badge -->
-    <div id="calibrationBadge" style="
-        position: fixed;
-        top: 80px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.8);
-        color: #f80;
-        padding: 8px 16px;
-        border-radius: 20px;
-        font-family: 'Outfit', sans-serif;
-        font-size: 12px;
-        z-index: 1400;
-        display: none;
-        cursor: pointer;
-    " onclick="startCalibrationMode()">
-        ⚠️ Not calibrated - Click to calibrate
-    </div>
+    <!-- Calibration Status Badge - Hidden by default -->
+    <div id="calibrationBadge" style="display: none;"></div>
     
     <!-- Debug Overlay (Toggle with 'D' key) -->
     <div id="debugOverlay" style="
@@ -1638,6 +1622,28 @@
         // System to add more landmarks easily
         let customMarkers = [];
         
+        // Clear duplicate markers from localStorage
+        function cleanupDuplicateMarkers() {
+            const saved = localStorage.getItem('customMarkers');
+            if (saved) {
+                try {
+                    const markers = JSON.parse(saved);
+                    // Remove any markers that match built-in ones
+                    const cleaned = markers.filter(m => m.id !== 'intellion_park');
+                    if (cleaned.length !== markers.length) {
+                        localStorage.setItem('customMarkers', JSON.stringify(cleaned));
+                        console.log(`🧹 Cleaned ${markers.length - cleaned.length} duplicate markers from storage`);
+                    }
+                } catch (e) {
+                    // If corrupt, just clear it
+                    localStorage.removeItem('customMarkers');
+                }
+            }
+        }
+        
+        // Run cleanup on load
+        cleanupDuplicateMarkers();
+        
         // Debug function to check marker status
         window.debugMarkers = function() {
             console.log('═══════════════════════════════════════');
@@ -1686,9 +1692,22 @@
             const saved = localStorage.getItem('customMarkers');
             if (saved) {
                 try {
-                    customMarkers = JSON.parse(saved);
-                    customMarkers.forEach(marker => markers3D.push(marker));
-                    console.log(`✅ Loaded ${customMarkers.length} custom markers`);
+                    const loadedMarkers = JSON.parse(saved);
+                    
+                    // Only add markers that don't already exist (prevent duplicates)
+                    loadedMarkers.forEach(marker => {
+                        const exists = markers3D.some(m => m.id === marker.id || 
+                            (Math.abs(m.lat - marker.lat) < 0.0001 && Math.abs(m.lng - marker.lng) < 0.0001));
+                        
+                        if (!exists) {
+                            customMarkers.push(marker);
+                            markers3D.push(marker);
+                        } else {
+                            console.log(`⚠️ Skipping duplicate marker: ${marker.name}`);
+                        }
+                    });
+                    
+                    console.log(`✅ Loaded ${customMarkers.length} custom markers (${loadedMarkers.length - customMarkers.length} duplicates skipped)`);
                 } catch (e) {
                     console.error('Error loading custom markers:', e);
                 }
@@ -1835,9 +1854,9 @@
                 });
                 
                 // Calculate percentage along route
-                const distanceFraction = nearestPoint.properties.location; // 0-1 range
-                const percentage = distanceFraction * 100;
-                const distanceAlongRoute = distanceFraction * totalRouteLength;
+                // location is DISTANCE IN METERS, not a fraction!
+                const distanceAlongRoute = nearestPoint.properties.location; // Distance in meters
+                const percentage = (distanceAlongRoute / totalRouteLength) * 100; // Convert to percentage
                 
                 console.log('   Route position:', {
                     percentage: percentage.toFixed(2) + '%',
@@ -2092,11 +2111,10 @@
             const landmarkPoint = turf.point([marker.lng, marker.lat]);
             const nearestPoint = turf.nearestPointOnLine(routeGeoJSON.geometry, landmarkPoint, { units: 'meters' });
             
-            // nearestPoint.properties.location is a FRACTION (0 to 1) of total route length
-            // Convert directly to percentage
-            const distanceFraction = nearestPoint.properties.location; // 0-1 range
-            const percentage = distanceFraction * 100; // Convert to 0-100 percentage
-            const distanceAlongRoute = distanceFraction * totalRouteLength; // Distance in meters for logging
+            // nearestPoint.properties.location is DISTANCE IN METERS along the line
+            // We need to convert to percentage of total route length
+            const distanceAlongRoute = nearestPoint.properties.location; // Distance in meters
+            const percentage = (distanceAlongRoute / totalRouteLength) * 100; // Convert to 0-100 percentage
             
             // Validate percentage
             if (isNaN(percentage) || percentage < 0 || percentage > 100) {
@@ -2264,7 +2282,8 @@
                 const distanceFromRoute = nearestPoint.properties.dist;
                 
                 // Calculate video timestamp
-                const distanceFromStart = nearestPoint.properties.location * totalRouteLength;
+                // location is already in METERS (not a fraction!)
+                const distanceFromStart = nearestPoint.properties.location;
                 const videoTime = (distanceFromStart / totalRouteLength) * video.duration;
                 
                 // Calculate bearing
@@ -2465,7 +2484,8 @@
                 }
                 
                 // Calculate video timestamp
-                const distanceFromStart = nearestPoint.properties.location * totalRouteLength;
+                // location is already in METERS (not a fraction!)
+                const distanceFromStart = nearestPoint.properties.location;
                 const videoTime = (distanceFromStart / totalRouteLength) * video.duration;
                 
                 // Calculate bearing
@@ -4297,24 +4317,30 @@ Or wait a minute and try "Auto-Tag" again (servers may be busy).`);
                 clearTagsBtn.addEventListener('click', clearAllTags);
             }
             
-            // Show calibration status
-            if (!isCalibrated) {
-                document.getElementById('calibrationBadge').style.display = 'block';
-                document.getElementById('calibrateBtnText').textContent = 'Calibrate (Required!)';
-            } else {
+            // Update calibrate button text (badge removed - too intrusive)
+            if (isCalibrated) {
                 document.getElementById('calibrateBtnText').textContent = `Calibrated (${globalHeadingOffset.toFixed(0)}°)`;
             }
             
-            console.log('✅ Application ready!');
             console.log('');
-            console.log('═══════════════════════════════════════');
-            console.log('📖 HOW TO USE:');
-            console.log('═══════════════════════════════════════');
-            console.log('🛣️  Click the GREEN ROUTE LINE → Jump to that video frame');
-            console.log('🏢 Click a BUILDING on map → Auto-tag it (appears in video)');
-            console.log('⌨️  Hold SHIFT + Click → Manually name a location');
-            console.log('🔍 Type debugMarkers() → Check marker status');
-            console.log('═══════════════════════════════════════');
+            console.log('═════════════════════════════════════════════════════');
+            console.log('  🚀 STREET VIEW TRAINING SYSTEM - READY');
+            console.log('═════════════════════════════════════════════════════');
+            console.log('');
+            console.log('  CONTROLS:');
+            console.log('  ────────────────────────────────────────────────────');
+            console.log('  🛣️  Click GREEN ROUTE LINE → Jump to video frame');
+            console.log('  🏢 Click BUILDING on map   → Tag it (shows in video)');
+            console.log('  🎯 Press C key             → Calibrate camera');
+            console.log('  🔍 Press D key             → Toggle debug overlay');
+            console.log('');
+            console.log('  MARKERS LOADED: ' + markers3D.length);
+            if (isCalibrated) {
+                console.log('  CALIBRATION: ✅ Active (offset: ' + globalHeadingOffset.toFixed(1) + '°)');
+            } else {
+                console.log('  CALIBRATION: ⚠️ Not calibrated (press C to calibrate)');
+            }
+            console.log('═════════════════════════════════════════════════════');
             console.log('');
         });
     </script>
